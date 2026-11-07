@@ -32,13 +32,13 @@
     - name: Require complete collection and successful ping checks
       ansible.builtin.assert:
         that:
-          - item.router_reachable | default(false)
-          - item.raw_collection_ok | default(false)
-          - item.export_ok | default(false)
-          - item.management_ping.received | default(0, true) | int == (item.expected_ping_count | default(5) | int)
-          - item.peer_ping.received | default(0, true) | int == (item.expected_ping_count | default(5) | int)
-        fail_msg: "{{ item.router }}: report saved, but one or more checks failed."
-        success_msg: "{{ item.router }}: configuration was collected and both ping checks passed."
-      loop: "{{ lab_results }}"
-      loop_control:
-        label: "{{ item.router }}"
+          - lab_result.router_reachable | default(false)
+          - lab_result.raw_collection_ok | default(false)
+          - lab_result.export_ok | default(false)
+          - lab_result.management_ping.received | default(0, true) | int == (lab_result.expected_ping_count | default(5) | int)
+          - lab_result.peer_ping.received | default(0, true) | int == (lab_result.expected_ping_count | default(5) | int)
+        fail_msg: "{{ item }}: report saved, but one or more checks failed."
+        success_msg: "{{ item }}: configuration was collected and both ping checks passed."
+      vars:
+        lab_result: "{{ lab_results | selectattr('router', 'equalto', item) | first }}"
+      loop: "{{ groups['routeros'] }}"

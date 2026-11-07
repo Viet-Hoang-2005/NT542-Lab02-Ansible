@@ -30,6 +30,11 @@ class PingTests(unittest.TestCase):
         self.assertTrue(actual['warnings'])
         self.assertIsNone(metrics.parse_ping('unexpected output', 'linux')['sent'])
 
+    def test_memory_percentage_and_missing_data(self):
+        self.assertEqual(metrics.memory_used_percent({'ansible_net_memtotal_mb': 256, 'ansible_net_memfree_mb': 64}), 75.0)
+        self.assertIsNone(metrics.memory_used_percent({'ansible_net_memtotal_mb': 0, 'ansible_net_memfree_mb': 0}))
+        self.assertIsNone(metrics.memory_used_percent({}))
+
 
 class ConflictTests(unittest.TestCase):
     desired = {'link_interface': 'ether2', 'loopback_interface': 'lo',

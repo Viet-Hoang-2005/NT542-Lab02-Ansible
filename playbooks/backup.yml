@@ -21,7 +21,7 @@
     - name: Save the router export
       ansible.builtin.copy:
         content: "{{ lab_export.stdout[0] }}\n"
-        dest: "{{ inventory_dir }}/artifacts/{{ hostvars['localhost'].lab_run_id }}/{{ inventory_hostname }}-{{ backup_phase }}.rsc"
+        dest: "{{ hostvars['localhost'].lab_project_dir }}/artifacts/{{ hostvars['localhost'].lab_run_id }}/{{ inventory_hostname }}-{{ backup_phase }}.rsc"
         mode: '0600'
       delegate_to: localhost
       no_log: true

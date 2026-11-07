@@ -11,7 +11,7 @@
     - name: Validate the run ID
       ansible.builtin.assert:
         that:
-          - lab_run_id is match('^[A-Za-z0-9_.-]+$')
+          - lab_run_id is match('^[A-Za-z0-9][A-Za-z0-9_.-]*$')
     - name: Create the artifact directory
       ansible.builtin.file:
         path: "{{ lab_project_dir }}/artifacts/{{ lab_run_id }}"

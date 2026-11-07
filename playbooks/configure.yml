@@ -46,3 +46,31 @@
       register: lab_new_identity
       changed_when: false
       failed_when: lab_new_identity.stdout[0] | trim != lab_identity
+    - name: Read the resulting addresses and routes
+      community.routeros.command:
+        commands:
+          - ':put [:serialize to=json [/ip address print as-value]]'
+          - ':put [:serialize to=json [/ip route print as-value]]'
+          - ':put [:serialize to=json [/interface print as-value]]'
+      register: lab_applied_state
+      changed_when: false
+    - name: Validate the resulting configuration
+      ansible.builtin.set_fact:
+        lab_verified_plan: >-
+          {{ (lab_applied_state.stdout[0] | from_json)
+             | lab_plan_router_state(lab_applied_state.stdout[1] | from_json,
+                                     lab_applied_state.stdout[2] | from_json,
+                                     {'link_interface': lab_link_interface,
+                                      'loopback_interface': lab_loopback_interface,
+                                      'link_address': lab_link_address,
+                                      'loopback_address': lab_loopback_address,
+                                      'peer_loopback': lab_peer_loopback,
+                                      'peer_gateway': lab_peer_gateway}) }}
+    - name: Require all requested addresses and routes
+      ansible.builtin.assert:
+        that:
+          - lab_verified_plan.errors | length == 0
+          - not lab_verified_plan.actions.link_address
+          - not lab_verified_plan.actions.loopback_address
+          - not lab_verified_plan.actions.route
+        fail_msg: "The router did not apply all requested settings: {{ lab_verified_plan }}"

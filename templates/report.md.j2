@@ -37,7 +37,7 @@ Each ping sends five packets by default. RTT values are milliseconds; `N/A` mean
 ## Collection status and evidence
 
 {% for result in lab_results %}
-- **{{ result.router }}**: facts={{ 'OK' if result.router_reachable else 'FAILED' }}, raw CLI={{ 'OK' if result.raw_collection_ok else 'FAILED' }}, export={{ 'OK' if result.export_ok else 'FAILED' }}.{% if result.error is defined %} {{ result.error }}{% endif %}
+- **{{ result.router }}**: facts={{ 'OK' if result.router_reachable else 'FAILED' }}, raw CLI={{ 'OK' if result.raw_collection_ok else 'FAILED' }}, export={{ 'OK' if result.export_ok else 'FAILED' }}.{% if result.error is defined %} {{ result.error }}{% endif %}{{ '\n' }}
 {% for warning in result.management_ping.get('warnings', []) + result.peer_ping.get('warnings', []) %}
   - {{ warning }}
 {% endfor %}

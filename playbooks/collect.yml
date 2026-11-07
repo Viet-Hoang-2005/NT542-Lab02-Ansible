@@ -46,7 +46,7 @@
     - name: Save the collected configuration
       ansible.builtin.copy:
         content: "{{ lab_collect_export.stdout[0] }}\n"
-        dest: "{{ inventory_dir }}/artifacts/{{ hostvars['localhost'].lab_run_id }}/{{ inventory_hostname }}-collected.rsc"
+        dest: "{{ hostvars['localhost'].lab_project_dir }}/artifacts/{{ hostvars['localhost'].lab_run_id }}/{{ inventory_hostname }}-collected.rsc"
         mode: '0600'
       delegate_to: localhost
       when:
@@ -70,12 +70,12 @@
     - name: Save the machine-readable measurements
       ansible.builtin.copy:
         content: "{{ lab_measurement | to_nice_json }}\n"
-        dest: "{{ inventory_dir }}/artifacts/{{ hostvars['localhost'].lab_run_id }}/{{ inventory_hostname }}-metrics.json"
+        dest: "{{ hostvars['localhost'].lab_project_dir }}/artifacts/{{ hostvars['localhost'].lab_run_id }}/{{ inventory_hostname }}-metrics.json"
         mode: '0600'
       delegate_to: localhost
     - name: Save the raw CLI and ping output
       ansible.builtin.copy:
         content: "{{ {'management_ping': lab_management_ping.stdout | default(''), 'router_commands': lab_raw_result.stdout | default([])} | to_nice_json }}\n"
-        dest: "{{ inventory_dir }}/artifacts/{{ hostvars['localhost'].lab_run_id }}/{{ inventory_hostname }}-raw.json"
+        dest: "{{ hostvars['localhost'].lab_project_dir }}/artifacts/{{ hostvars['localhost'].lab_run_id }}/{{ inventory_hostname }}-raw.json"
         mode: '0600'
       delegate_to: localhost
