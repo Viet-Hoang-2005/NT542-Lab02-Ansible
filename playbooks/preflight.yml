@@ -38,9 +38,9 @@
       community.routeros.command:
         commands:
           - /system resource print
-          - ':put [:serialize to=json [/ip address print as-value .proplist=address,interface,comment]]'
-          - ':put [:serialize to=json [/ip route print as-value .proplist=dst-address,gateway,comment]]'
-          - ':put [:serialize to=json [/interface print as-value .proplist=name]]'
+          - ':put [:serialize to=json [/ip address print as-value]]'
+          - ':put [:serialize to=json [/ip route print as-value]]'
+          - ':put [:serialize to=json [/interface print as-value]]'
       register: lab_state
       changed_when: false
     - name: Require RouterOS 7.16.1
