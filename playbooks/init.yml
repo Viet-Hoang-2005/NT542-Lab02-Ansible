@@ -7,12 +7,13 @@
     - name: Initialize the UTC run ID
       ansible.builtin.set_fact:
         lab_run_id: "{{ lab_run_id | default(lookup('pipe', 'date -u +%Y%m%dT%H%M%S.%NZ')) }}"
+        lab_project_dir: "{{ hostvars[groups['routeros'][0]].inventory_dir }}"
     - name: Validate the run ID
       ansible.builtin.assert:
         that:
           - lab_run_id is match('^[A-Za-z0-9_.-]+$')
     - name: Create the artifact directory
       ansible.builtin.file:
-        path: "{{ inventory_dir }}/artifacts/{{ lab_run_id }}"
+        path: "{{ lab_project_dir }}/artifacts/{{ lab_run_id }}"
         state: directory
         mode: '0700'

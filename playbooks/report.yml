@@ -6,7 +6,7 @@
   connection: local
   gather_facts: false
   vars:
-    lab_artifact_dir: "{{ inventory_dir }}/artifacts/{{ lab_run_id }}"
+    lab_artifact_dir: "{{ lab_project_dir }}/artifacts/{{ lab_run_id }}"
   tasks:
     - name: Initialize the measurement list
       ansible.builtin.set_fact:
@@ -18,12 +18,12 @@
         loop_var: lab_router
     - name: Write the Markdown report
       ansible.builtin.template:
-        src: "{{ inventory_dir }}/templates/report.md.j2"
+        src: "{{ lab_project_dir }}/templates/report.md.j2"
         dest: "{{ lab_artifact_dir }}/report.md"
         mode: '0600'
     - name: Write the CSV summary
       ansible.builtin.template:
-        src: "{{ inventory_dir }}/templates/summary.csv.j2"
+        src: "{{ lab_project_dir }}/templates/summary.csv.j2"
         dest: "{{ lab_artifact_dir }}/summary.csv"
         mode: '0600'
     - name: Display the report location
