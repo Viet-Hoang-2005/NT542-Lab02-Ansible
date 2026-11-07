@@ -21,3 +21,5 @@ venv/
 # Ansible
 .ansible/
 .venv-ansible/
+artifacts/
+.python-version

@@ -1,0 +1,81 @@
+---
+- import_playbook: init.yml
+
+- name: Collect router configuration and measurements
+  hosts: routeros
+  gather_facts: false
+  tasks:
+    - name: Ping the management address from the control node
+      ansible.builtin.command:
+        argv: [ping, -n, -c, "{{ lab_ping_count | string }}", -W, '2', "{{ ansible_host }}"]
+      environment:
+        LC_ALL: C
+      delegate_to: localhost
+      register: lab_management_ping
+      failed_when: false
+      changed_when: false
+    - name: Read hardware and interface facts
+      community.routeros.facts:
+        gather_subset: [hardware, interfaces, '!routing', '!config']
+      register: lab_facts_result
+      ignore_errors: true
+      ignore_unreachable: true
+      changed_when: false
+    - name: Read raw router state and ping the peer loopback
+      community.routeros.command:
+        commands:
+          - /system resource print
+          - /interface print detail without-paging
+          - /ip address print detail without-paging
+          - /ip route print detail without-paging
+          - "/tool ping address={{ lab_peer_loopback }} src-address={{ lab_loopback_address.split('/')[0] }} count={{ lab_ping_count }} interval={{ lab_ping_interval }}"
+      register: lab_raw_result
+      when: not (lab_facts_result.failed | default(false) or lab_facts_result.unreachable | default(false))
+      ignore_errors: true
+      ignore_unreachable: true
+      changed_when: false
+    - name: Export the current router configuration
+      community.routeros.command:
+        commands: [/export]
+      register: lab_collect_export
+      when: not (lab_facts_result.failed | default(false) or lab_facts_result.unreachable | default(false))
+      ignore_errors: true
+      ignore_unreachable: true
+      changed_when: false
+      no_log: true
+    - name: Save the collected configuration
+      ansible.builtin.copy:
+        content: "{{ lab_collect_export.stdout[0] }}\n"
+        dest: "{{ inventory_dir }}/artifacts/{{ hostvars['localhost'].lab_run_id }}/{{ inventory_hostname }}-collected.rsc"
+        mode: '0600'
+      delegate_to: localhost
+      when:
+        - lab_collect_export.stdout is defined
+        - lab_collect_export.stdout | length > 0
+      no_log: true
+    - name: Prepare the measurements
+      ansible.builtin.set_fact:
+        lab_measurement:
+          router: "{{ inventory_hostname }}"
+          management_address: "{{ ansible_host }}"
+          peer_loopback: "{{ lab_peer_loopback }}"
+          expected_ping_count: "{{ lab_ping_count | int }}"
+          router_reachable: "{{ not (lab_facts_result.failed | default(false) or lab_facts_result.unreachable | default(false)) }}"
+          raw_collection_ok: "{{ lab_raw_result.stdout is defined and lab_raw_result.stdout | length == 5 }}"
+          export_ok: "{{ lab_collect_export.stdout is defined and lab_collect_export.stdout | length > 0 }}"
+          facts: "{{ lab_facts_result.ansible_facts | default({}) }}"
+          memory_used_percent: "{{ lab_facts_result.ansible_facts | default({}) | lab_memory_used_percent }}"
+          management_ping: "{{ lab_management_ping.stdout | default('') | lab_parse_ping('linux') }}"
+          peer_ping: "{{ ((lab_raw_result.stdout | default([])) | last | default('')) | lab_parse_ping('routeros') }}"
+    - name: Save the machine-readable measurements
+      ansible.builtin.copy:
+        content: "{{ lab_measurement | to_nice_json }}\n"
+        dest: "{{ inventory_dir }}/artifacts/{{ hostvars['localhost'].lab_run_id }}/{{ inventory_hostname }}-metrics.json"
+        mode: '0600'
+      delegate_to: localhost
+    - name: Save the raw CLI and ping output
+      ansible.builtin.copy:
+        content: "{{ {'management_ping': lab_management_ping.stdout | default(''), 'router_commands': lab_raw_result.stdout | default([])} | to_nice_json }}\n"
+        dest: "{{ inventory_dir }}/artifacts/{{ hostvars['localhost'].lab_run_id }}/{{ inventory_hostname }}-raw.json"
+        mode: '0600'
+      delegate_to: localhost

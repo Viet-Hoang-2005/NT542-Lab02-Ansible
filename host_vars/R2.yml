@@ -1,0 +1,8 @@
+---
+lab_identity: R2
+lab_link_interface: ether2
+lab_link_address: 10.12.0.2/30
+lab_loopback_interface: lo
+lab_loopback_address: 10.255.0.2/32
+lab_peer_loopback: 10.255.0.1
+lab_peer_gateway: 10.12.0.1

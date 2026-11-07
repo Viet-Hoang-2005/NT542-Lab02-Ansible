@@ -1,0 +1,17 @@
+---
+- name: Check prerequisites
+  import_playbook: playbooks/preflight.yml
+- name: Back up the initial configuration
+  import_playbook: playbooks/backup.yml
+  vars:
+    backup_phase: before
+- name: Configure routers
+  import_playbook: playbooks/configure.yml
+- name: Back up the resulting configuration
+  import_playbook: playbooks/backup.yml
+  vars:
+    backup_phase: after
+- name: Collect router measurements
+  import_playbook: playbooks/collect.yml
+- name: Generate the report
+  import_playbook: playbooks/report.yml

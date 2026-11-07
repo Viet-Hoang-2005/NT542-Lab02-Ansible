@@ -1,0 +1,44 @@
+---
+- import_playbook: init.yml
+
+- name: Produce a report from the saved measurements
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    lab_artifact_dir: "{{ inventory_dir }}/artifacts/{{ lab_run_id }}"
+  tasks:
+    - name: Initialize the measurement list
+      ansible.builtin.set_fact:
+        lab_results: []
+    - name: Load each router result if it exists
+      ansible.builtin.include_tasks: tasks/load_result.yml
+      loop: "{{ groups['routeros'] }}"
+      loop_control:
+        loop_var: lab_router
+    - name: Write the Markdown report
+      ansible.builtin.template:
+        src: "{{ inventory_dir }}/templates/report.md.j2"
+        dest: "{{ lab_artifact_dir }}/report.md"
+        mode: '0600'
+    - name: Write the CSV summary
+      ansible.builtin.template:
+        src: "{{ inventory_dir }}/templates/summary.csv.j2"
+        dest: "{{ lab_artifact_dir }}/summary.csv"
+        mode: '0600'
+    - name: Display the report location
+      ansible.builtin.debug:
+        msg: "Results: {{ lab_artifact_dir }}/report.md"
+    - name: Require complete collection and successful ping checks
+      ansible.builtin.assert:
+        that:
+          - item.router_reachable | default(false)
+          - item.raw_collection_ok | default(false)
+          - item.export_ok | default(false)
+          - item.management_ping.received | default(0, true) | int == (item.expected_ping_count | default(5) | int)
+          - item.peer_ping.received | default(0, true) | int == (item.expected_ping_count | default(5) | int)
+        fail_msg: "{{ item.router }}: report saved, but one or more checks failed."
+        success_msg: "{{ item.router }}: configuration was collected and both ping checks passed."
+      loop: "{{ lab_results }}"
+      loop_control:
+        label: "{{ item.router }}"

@@ -1,0 +1,48 @@
+# Router lab report
+
+Run ID: `{{ lab_run_id }}` (UTC). Results are point-in-time observations.
+
+## Topology
+
+The Ubuntu Ansible controller manages R1 and R2 over `192.168.126.0/24`.
+The routers connect over `10.12.0.0/30`; static routes connect their loopbacks.
+
+| Router | Management | Link | Loopback | Peer gateway |
+| --- | --- | --- | --- | --- |
+{% for router in groups['routeros'] %}
+| {{ router }} | {{ hostvars[router].ansible_host }} | {{ hostvars[router].lab_link_address }} | {{ hostvars[router].lab_loopback_address }} | {{ hostvars[router].lab_peer_gateway }} |
+{% endfor %}
+
+## Measurements
+
+| Router | SSH/facts | Identity | RouterOS | Uptime | CPU load (%) | RAM free / total (MiB) | RAM used (%) | Disk free / total (MiB) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+{% for result in lab_results %}
+{% set f = result.facts | default({}) %}
+| {{ result.router }} | {{ 'OK' if result.router_reachable else 'Unavailable' }} | {{ f.get('ansible_net_hostname', 'N/A') }} | {{ f.get('ansible_net_version', 'N/A') }} | {{ f.get('ansible_net_uptime', 'N/A') }} | {{ f.get('ansible_net_cpu_load', 'N/A') }} | {{ f.get('ansible_net_memfree_mb', 'N/A') }} / {{ f.get('ansible_net_memtotal_mb', 'N/A') }} | {{ result.memory_used_percent if result.memory_used_percent | default(none) is not none else 'N/A' }} | {{ f.get('ansible_net_spacefree_mb', 'N/A') }} / {{ f.get('ansible_net_spacetotal_mb', 'N/A') }} |
+{% endfor %}
+
+## Connectivity
+
+Each ping sends five packets by default. RTT values are milliseconds; `N/A` means no exact value was available.
+
+| Router | Source → destination | Sent | Received | Loss (%) | Min / avg / max RTT (ms) |
+| --- | --- | --- | --- | --- | --- |
+{% for result in lab_results %}
+{% for label, ping in [('Ubuntu → management', result.management_ping), ('Loopback → peer loopback', result.peer_ping)] %}
+| {{ result.router }} | {{ label }} | {{ ping.get('sent') if ping.get('sent') is not none else 'N/A' }} | {{ ping.get('received') if ping.get('received') is not none else 'N/A' }} | {{ ping.get('loss_percent') if ping.get('loss_percent') is not none else 'N/A' }} | {{ ping.get('min_ms') if ping.get('min_ms') is not none else 'N/A' }} / {{ ping.get('avg_ms') if ping.get('avg_ms') is not none else 'N/A' }} / {{ ping.get('max_ms') if ping.get('max_ms') is not none else 'N/A' }} |
+{% endfor %}
+{% endfor %}
+
+## Collection status and evidence
+
+{% for result in lab_results %}
+- **{{ result.router }}**: facts={{ 'OK' if result.router_reachable else 'FAILED' }}, raw CLI={{ 'OK' if result.raw_collection_ok else 'FAILED' }}, export={{ 'OK' if result.export_ok else 'FAILED' }}.{% if result.error is defined %} {{ result.error }}{% endif %}
+{% for warning in result.management_ping.get('warnings', []) + result.peer_ping.get('warnings', []) %}
+  - {{ warning }}
+{% endfor %}
+{% endfor %}
+
+Exports and raw CLI results are saved beside this report. The `before` and `after` exports document the configuration change in a full run. RouterOS exports omit sensitive values unless explicitly requested, so they are not complete password backups.
+
+Ansible applies and collects configuration consistently across both devices. CPU, memory and ping describe the virtual lab at this instant; they do not establish that Ansible improves router performance or network throughput.

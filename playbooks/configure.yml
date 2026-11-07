@@ -1,0 +1,48 @@
+---
+- import_playbook: preflight.yml
+
+- name: Configure routers one at a time
+  hosts: routeros
+  gather_facts: false
+  serial: 1
+  any_errors_fatal: true
+  tasks:
+    - name: Add the inter-router address
+      community.routeros.command:
+        commands:
+          - "/ip address add address={{ lab_link_address }} interface={{ lab_link_interface }} comment={{ lab_comment }}"
+      when: lab_plan.actions.link_address
+      changed_when: true
+    - name: Add the loopback address
+      community.routeros.command:
+        commands:
+          - "/ip address add address={{ lab_loopback_address }} interface={{ lab_loopback_interface }} comment={{ lab_comment }}"
+      when: lab_plan.actions.loopback_address
+      changed_when: true
+    - name: Add the route to the peer loopback
+      community.routeros.command:
+        commands:
+          - "/ip route add dst-address={{ lab_peer_loopback }}/32 gateway={{ lab_peer_gateway }} comment={{ lab_comment }}"
+      when: lab_plan.actions.route
+      changed_when: true
+    - name: Read the current router identity
+      community.routeros.command:
+        commands:
+          - ':put [/system identity get name]'
+      register: lab_current_identity
+      changed_when: false
+    - name: Set the router identity
+      community.routeros.command:
+        commands:
+          - "/system identity set name={{ lab_identity }}"
+      when: lab_current_identity.stdout[0] | trim != lab_identity
+      changed_when: true
+    - name: Reset the connection after the identity check
+      ansible.builtin.meta: reset_connection
+    - name: Verify the resulting identity
+      community.routeros.command:
+        commands:
+          - ':put [/system identity get name]'
+      register: lab_new_identity
+      changed_when: false
+      failed_when: lab_new_identity.stdout[0] | trim != lab_identity

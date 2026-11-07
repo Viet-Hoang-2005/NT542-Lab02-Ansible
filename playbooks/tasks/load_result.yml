@@ -1,0 +1,19 @@
+---
+- name: Check whether the router result was saved
+  ansible.builtin.stat:
+    path: "{{ lab_artifact_dir }}/{{ lab_router }}-metrics.json"
+  register: lab_result_file
+- name: Read the router result
+  ansible.builtin.slurp:
+    src: "{{ lab_artifact_dir }}/{{ lab_router }}-metrics.json"
+  register: lab_result_data
+  when: lab_result_file.stat.exists
+- name: Add the router result to the report
+  ansible.builtin.set_fact:
+    lab_results: >-
+      {{ lab_results + [((lab_result_data.content | b64decode | from_json)
+                         if lab_result_file.stat.exists else
+                         {'router': lab_router, 'router_reachable': false,
+                          'raw_collection_ok': false, 'export_ok': false,
+                          'facts': {}, 'management_ping': {}, 'peer_ping': {},
+                          'error': 'No measurement file was produced.'})] }}

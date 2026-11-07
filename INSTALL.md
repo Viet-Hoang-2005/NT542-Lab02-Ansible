@@ -283,22 +283,33 @@ Sử dụng máy ảo độc lập **Ubuntu 20.04** trên VMware Workstation (c�
    ping -c 3 192.168.126.11
    ping -c 3 192.168.126.12
    ```
-3. Cài đặt Ansible và các thư viện điều khiển thiết bị mạng:
+3. Cài pyenv và các thư viện cần để biên dịch Python 3.12:
    ```bash
-   # Cập nhật kho gói và cài đặt Ansible
-   sudo apt update && sudo apt install -y python3-pip ansible git
-
-   # Cài đặt thư viện SSH cho Python
-   pip3 install paramiko ansible-pylibssh
-
-   # Cài đặt các collection Ansible hỗ trợ quản lý MikroTik RouterOS
-   ansible-galaxy collection install community.routeros
-   ansible-galaxy collection install ansible.netcommon
+   sudo apt update
+   sudo apt install -y build-essential git curl ca-certificates libssl-dev zlib1g-dev \
+     libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev \
+     libffi-dev liblzma-dev
+   # Chỉ clone nếu ~/.pyenv chưa tồn tại.
+   git clone https://github.com/pyenv/pyenv.git "$HOME/.pyenv"
    ```
-4. Kiểm tra phiên bản Ansible đã cài đặt:
+   Thêm một lần vào `~/.bashrc` và `~/.profile`, sau đó chạy `source ~/.bashrc`:
    ```bash
+   export PYENV_ROOT="$HOME/.pyenv"
+   export PATH="$PYENV_ROOT/bin:$PATH"
+   eval "$(pyenv init - bash)"
+   ```
+4. Trong thư mục dự án, tạo venv riêng và cài các phiên bản đã ghim:
+   ```bash
+   MAKE_OPTS='-j2' pyenv install -s 3.12.16
+   cd ~/Downloads/NT542-Lab02-Ansible
+   pyenv local 3.12.16
+   python -m venv .venv-ansible
+   source .venv-ansible/bin/activate
+   python -m pip install -r requirements.txt
+   ansible-galaxy collection install -r requirements.yml
    ansible --version
    ```
+   Python hệ thống vẫn giữ nguyên. Ansible Core 2.20.11 chạy trên Python 3.12; dùng `deactivate` để thoát venv. Hướng dẫn chạy playbook nằm trong [README.md](README.md).
 
 ---
 

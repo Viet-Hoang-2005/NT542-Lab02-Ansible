@@ -1,0 +1,27 @@
+---
+- import_playbook: init.yml
+
+- name: Export configurations to the control node
+  hosts: routeros
+  gather_facts: false
+  any_errors_fatal: true
+  vars:
+    backup_phase: manual
+  tasks:
+    - name: Validate the backup phase
+      ansible.builtin.assert:
+        that:
+          - backup_phase is match('^[A-Za-z0-9_-]+$')
+    - name: Export RouterOS configuration without sensitive values
+      community.routeros.command:
+        commands: [/export]
+      register: lab_export
+      changed_when: false
+      no_log: true
+    - name: Save the router export
+      ansible.builtin.copy:
+        content: "{{ lab_export.stdout[0] }}\n"
+        dest: "{{ inventory_dir }}/artifacts/{{ hostvars['localhost'].lab_run_id }}/{{ inventory_hostname }}-{{ backup_phase }}.rsc"
+        mode: '0600'
+      delegate_to: localhost
+      no_log: true
