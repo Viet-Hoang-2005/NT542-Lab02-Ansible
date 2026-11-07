@@ -1,0 +1,23 @@
+# Environment
+.env
+.env.local
+.env.*.local
+env/
+
+# IDE & AI
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.codex/
+.claude/
+
+# Python
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+venv/
+
+# Ansible
+.ansible/
+.venv-ansible/
