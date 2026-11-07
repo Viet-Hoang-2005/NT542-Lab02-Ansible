@@ -74,8 +74,11 @@ Export `/export` không dùng `show-sensitive`, nên không chứa đầy đủ 
 ## Cấu trúc và kiểm thử
 
 - `inventory.ini`, `group_vars/`, `host_vars/`: thiết bị và giá trị mong muốn.
-- `playbooks/`: kiểm tra, sao lưu, cấu hình, thu thập và báo cáo; `site.yml` ghép các bước.
-- `filter_plugins/`, `templates/`: phân tích ping, kiểm tra xung đột, tạo Markdown/CSV.
+- `site.yml` và `playbooks/`: điều phối các play, nhóm máy và thứ tự chạy; mỗi playbook vẫn có thể chạy riêng.
+- `roles/preflight/`: kiểm tra control node và router, thực thi điều kiện an toàn trước khi cấu hình.
+- `roles/router_backup/`, `roles/router_config/`, `roles/router_collect/`: sao lưu, cấu hình và thu thập thông số.
+- `roles/lab_report/`: tạo báo cáo và chứa template Markdown/CSV.
+- `filter_plugins/`: phân tích ping và kiểm tra xung đột cấu hình.
 - `tests/`: kiểm thử bộ phân tích và phát hiện xung đột.
 
 ```bash

@@ -7,93 +7,25 @@
   gather_facts: false
   any_errors_fatal: true
   tasks:
-    - name: Require a compatible Ansible Core
-      ansible.builtin.assert:
-        that:
-          - ansible_version.full is version('2.20', '>=')
-          - ansible_version.full is version('2.21', '<')
-        fail_msg: Activate the lab venv with Ansible Core 2.20.x before proceeding.
-    - name: Check the SSH dependency
-      ansible.builtin.command:
-        argv: ["{{ ansible_playbook_python }}", -c, 'import pylibsshext']
-      changed_when: false
-    - name: Check the installed collections
-      ansible.builtin.command:
-        argv: [ansible-galaxy, collection, list]
-      register: lab_collections
-      changed_when: false
-    - name: Require the planned collection versions
-      ansible.builtin.assert:
-        that:
-          - lab_collections.stdout is search('community\\.routeros\\s+3\\.23\\.0')
-          - lab_collections.stdout is search('ansible\\.netcommon\\s+8\\.7\\.1')
-          - lab_collections.stdout is search('ansible\\.utils\\s+6\\.1\\.1')
-        fail_msg: Install the pinned collections from requirements.yml.
-
+    - name: Check controller prerequisites
+      ansible.builtin.import_role:
+        name: preflight
+        tasks_from: controller.yml
 - name: Check both routers before configuration
   hosts: routeros
   gather_facts: false
   tasks:
-    - name: Check the router and record any preflight failure
-      block:
-        - name: Read RouterOS version and current configuration state
-          community.routeros.command:
-            commands:
-              - /system resource print
-              - ':put [:serialize to=json [/ip address print as-value]]'
-              - ':put [:serialize to=json [/ip route print as-value]]'
-              - ':put [:serialize to=json [/interface print as-value]]'
-          register: lab_state
-          ignore_unreachable: true
-          changed_when: false
-        - name: Require a successful SSH connection
-          ansible.builtin.assert:
-            that:
-              - not (lab_state.unreachable | default(false))
-            fail_msg: The router could not be reached over SSH.
-        - name: Require RouterOS 7.16.1
-          ansible.builtin.assert:
-            that:
-              - lab_state.stdout[0] is search('version:\\s*7\\.16\\.1(?:\\s|$)')
-            fail_msg: The lab was tested for RouterOS 7.16.1; inspect compatibility before proceeding.
-        - name: Check addresses, routes and required interfaces
-          ansible.builtin.set_fact:
-            lab_plan: >-
-              {{ (lab_state.stdout[1] | from_json)
-                 | lab_plan_router_state(lab_state.stdout[2] | from_json,
-                                         lab_state.stdout[3] | from_json,
-                                         {'link_interface': lab_link_interface,
-                                          'loopback_interface': lab_loopback_interface,
-                                          'link_address': lab_link_address,
-                                          'loopback_address': lab_loopback_address,
-                                          'peer_loopback': lab_peer_loopback,
-                                          'peer_gateway': lab_peer_gateway}) }}
-        - name: Stop on configuration conflicts
-          ansible.builtin.assert:
-            that:
-              - lab_plan.errors | length == 0
-            fail_msg: "{{ lab_plan.errors | join('; ') }}"
-        - name: Mark the router as ready
-          ansible.builtin.set_fact:
-            lab_preflight_ok: true
-            lab_preflight_error: null
-        - name: Show the planned additions
-          ansible.builtin.debug:
-            var: lab_plan.actions
-      rescue:
-        - name: Record the preflight failure
-          ansible.builtin.set_fact:
-            lab_preflight_ok: false
-            lab_preflight_error: "{{ ansible_failed_result.msg | default('Preflight failed.') }}"
+    - name: Check router prerequisites
+      ansible.builtin.import_role:
+        name: preflight
+        tasks_from: routers.yml
 - name: Enforce all-router readiness for a standalone preflight
   hosts: localhost
   connection: local
   gather_facts: false
   any_errors_fatal: true
   tasks:
-    - name: Stop a standalone preflight if any router is not ready
-      ansible.builtin.assert:
-        that:
-          - (groups['routeros'] | map('extract', hostvars, 'lab_preflight_ok') | select('equalto', true) | list | length) == (groups['routeros'] | length)
-        fail_msg: At least one router failed preflight. Review the router-specific errors above.
-      when: not (lab_allow_partial | default(false) | bool)
+    - name: Enforce router readiness
+      ansible.builtin.import_role:
+        name: preflight
+        tasks_from: enforce.yml

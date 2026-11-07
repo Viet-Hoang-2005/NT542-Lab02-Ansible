@@ -1,0 +1,23 @@
+---
+- name: Require a compatible Ansible Core
+  ansible.builtin.assert:
+    that:
+      - ansible_version.full is version('2.20', '>=')
+      - ansible_version.full is version('2.21', '<')
+    fail_msg: Activate the lab venv with Ansible Core 2.20.x before proceeding.
+- name: Check the SSH dependency
+  ansible.builtin.command:
+    argv: ["{{ ansible_playbook_python }}", -c, 'import pylibsshext']
+  changed_when: false
+- name: Check the installed collections
+  ansible.builtin.command:
+    argv: [ansible-galaxy, collection, list]
+  register: lab_collections
+  changed_when: false
+- name: Require the planned collection versions
+  ansible.builtin.assert:
+    that:
+      - lab_collections.stdout is search('community\\.routeros\\s+3\\.23\\.0')
+      - lab_collections.stdout is search('ansible\\.netcommon\\s+8\\.7\\.1')
+      - lab_collections.stdout is search('ansible\\.utils\\s+6\\.1\\.1')
+    fail_msg: Install the pinned collections from requirements.yml.

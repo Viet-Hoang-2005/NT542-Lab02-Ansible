@@ -1,0 +1,36 @@
+---
+- name: Initialize the measurement list
+  ansible.builtin.set_fact:
+    lab_results: []
+- name: Load each router result if it exists
+  ansible.builtin.include_tasks: load_result.yml
+  loop: "{{ groups['routeros'] }}"
+  loop_control:
+    loop_var: lab_router
+- name: Write the Markdown report
+  ansible.builtin.template:
+    src: report.md.j2
+    dest: "{{ lab_artifact_dir }}/report.md"
+    mode: '0600'
+- name: Write the CSV summary
+  ansible.builtin.template:
+    src: summary.csv.j2
+    dest: "{{ lab_artifact_dir }}/summary.csv"
+    mode: '0600'
+- name: Display the report location
+  ansible.builtin.debug:
+    msg: "Results: {{ lab_artifact_dir }}/report.md"
+- name: Require complete collection and successful ping checks
+  ansible.builtin.assert:
+    that:
+      - lab_result.router_reachable | default(false)
+      - lab_result.raw_collection_ok | default(false)
+      - lab_result.export_ok | default(false)
+      - lab_result.preflight_ok is not defined or lab_result.preflight_ok is none or lab_result.preflight_ok | bool
+      - lab_result.management_ping.received | default(0, true) | int == (lab_result.expected_ping_count | default(5) | int)
+      - lab_result.peer_ping.received | default(0, true) | int == (lab_result.expected_ping_count | default(5) | int)
+    fail_msg: "{{ item }}: report saved, but one or more checks failed."
+    success_msg: "{{ item }}: configuration was collected and both ping checks passed."
+  vars:
+    lab_result: "{{ lab_results | selectattr('router', 'equalto', item) | first }}"
+  loop: "{{ groups['routeros'] }}"
