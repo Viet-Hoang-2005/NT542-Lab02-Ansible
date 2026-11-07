@@ -33,6 +33,8 @@ Mỗi router có route tĩnh tới loopback của router kia qua `ether2`. Ping 
 3. Đăng nhập thủ công `ssh admin@192.168.126.11` và `.12` một lần, xác minh fingerprint trước khi chấp nhận host key. Inventory không chứa mật khẩu; Ansible sẽ hỏi mật khẩu SSH qua `-k`.
 4. Kiểm tra không có xung đột địa chỉ `10.12.0.0/30` và `10.255.0.0/32`–`10.255.0.2/32`; địa chỉ minh họa có thể điều chỉnh trong `host_vars/`.
 
+Ansible dùng tên đăng nhập `admin+cet1024w`: phần `+cet1024w` là tùy chọn terminal của RouterOS, giúp tránh màu và xuống dòng giữa dữ liệu JSON; tài khoản thực vẫn là `admin`.
+
 ## Chạy toàn bộ
 
 Từ thư mục dự án Ubuntu, sau khi kích hoạt venv:
