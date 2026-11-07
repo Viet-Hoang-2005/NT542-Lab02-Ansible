@@ -1,16 +1,22 @@
 ---
 - name: Check prerequisites
   import_playbook: playbooks/preflight.yml
+  vars:
+    lab_allow_partial: true
 - name: Back up the initial configuration
   import_playbook: playbooks/backup.yml
   vars:
     backup_phase: before
+    lab_allow_partial: true
 - name: Configure routers
   import_playbook: playbooks/configure.yml
+  vars:
+    lab_allow_partial: true
 - name: Back up the resulting configuration
   import_playbook: playbooks/backup.yml
   vars:
     backup_phase: after
+    lab_allow_partial: true
 - name: Collect router measurements
   import_playbook: playbooks/collect.yml
 - name: Generate the report

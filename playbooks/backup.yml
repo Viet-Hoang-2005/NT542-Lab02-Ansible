@@ -8,6 +8,11 @@
   vars:
     backup_phase: manual
   tasks:
+    - name: Skip full-run backups if either preflight failed
+      ansible.builtin.meta: end_play
+      when:
+        - lab_allow_partial | default(false) | bool
+        - (groups['routeros'] | map('extract', hostvars, 'lab_preflight_ok') | select('equalto', true) | list | length) != (groups['routeros'] | length)
     - name: Validate the backup phase
       ansible.builtin.assert:
         that:

@@ -63,6 +63,8 @@
           router_reachable: "{{ not (lab_facts_result.failed | default(false) or lab_facts_result.unreachable | default(false)) }}"
           raw_collection_ok: "{{ lab_raw_result.stdout is defined and lab_raw_result.stdout | length == 5 }}"
           export_ok: "{{ lab_collect_export.stdout is defined and lab_collect_export.stdout | length > 0 }}"
+          preflight_ok: "{{ lab_preflight_ok | default(none) }}"
+          preflight_error: "{{ lab_preflight_error | default(none) }}"
           facts: "{{ lab_facts_result.ansible_facts | default({}) }}"
           memory_used_percent: "{{ lab_facts_result.ansible_facts | default({}) | lab_memory_used_percent }}"
           management_ping: "{{ lab_management_ping.stdout | default('') | lab_parse_ping('linux') }}"

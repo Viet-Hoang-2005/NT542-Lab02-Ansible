@@ -35,6 +35,7 @@
           - lab_result.router_reachable | default(false)
           - lab_result.raw_collection_ok | default(false)
           - lab_result.export_ok | default(false)
+          - lab_result.preflight_ok is not defined or lab_result.preflight_ok is none or lab_result.preflight_ok | bool
           - lab_result.management_ping.received | default(0, true) | int == (lab_result.expected_ping_count | default(5) | int)
           - lab_result.peer_ping.received | default(0, true) | int == (lab_result.expected_ping_count | default(5) | int)
         fail_msg: "{{ item }}: report saved, but one or more checks failed."

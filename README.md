@@ -45,7 +45,7 @@ ansible-playbook --syntax-check site.yml
 ansible-playbook site.yml -k
 ```
 
-Chuỗi chạy: kiểm tra điều kiện → export trước → cấu hình → export sau → thu thập → tạo báo cáo. Khi kiểm tra xung đột thất bại, playbook dừng trước thay đổi. Thao tác cấu hình chạy lần lượt từng router; chạy lại không tạo IP hoặc route trùng.
+Chuỗi chạy: kiểm tra điều kiện → export trước → cấu hình → export sau → thu thập → tạo báo cáo. Nếu preflight phát hiện một router lỗi hoặc xung đột, playbook bỏ qua cấu hình cả hai router, tiếp tục thu thập phần có thể đọc và báo cáo lỗi. Thao tác cấu hình chạy lần lượt từng router; chạy lại không tạo IP hoặc route trùng.
 
 ## Chạy từng bước
 
