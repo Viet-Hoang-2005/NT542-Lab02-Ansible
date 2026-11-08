@@ -20,12 +20,17 @@
           - not (lab_state.unreachable | default(false))
         fail_msg: The router could not be reached over SSH.
 
-    # 3. Yêu cầu chính xác phiên bản RouterOS 7.16.1 đã được kiểm thử tính tương thích
-    - name: Require RouterOS 7.16.1
+    - name: Extract the RouterOS version
+      ansible.builtin.set_fact:
+        lab_routeros_version: >-
+          {{ lab_state.stdout[0] | regex_findall('(?m)^\\s*version:\\s*([^\\s]+)') | first | default('') }}
+
+    - name: Require a tested RouterOS version
       ansible.builtin.assert:
         that:
-          - lab_state.stdout[0] is search('version:\\s*7\\.16\\.1(?:\\s|$)')
-        fail_msg: The lab was tested for RouterOS 7.16.1; inspect compatibility before proceeding.
+          - lab_routeros_version | length > 0
+          - lab_routeros_version in lab_tested_routeros_versions
+        fail_msg: "RouterOS version '{{ lab_routeros_version | default('unknown', true) }}' is not in the tested list: {{ lab_tested_routeros_versions | join(', ') }}."
 
     # 4. Sử dụng Custom Filter Plugin (lab_plan_router_state) để so sánh trạng thái hiện tại với cấu hình mong muốn
     # Xác định các hành động cần thực hiện (actions) và phát hiện các lỗi xung đột (errors)

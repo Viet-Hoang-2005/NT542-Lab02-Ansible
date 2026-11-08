@@ -6,3 +6,5 @@ ansible_user: admin+cet1024w
 lab_ping_count: 5
 lab_ping_interval: 200ms
 lab_comment: NT542-Ansible
+lab_tested_routeros_versions:
+  - '7.16.1'

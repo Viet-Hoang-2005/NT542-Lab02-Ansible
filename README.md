@@ -106,7 +106,7 @@ NT542-Lab02-Ansible/
 ```
 
 ### Các thành phần chính cần chú ý:
-- **`inventory.ini` & `group_vars/routeros.yml`:** Khai báo thiết bị sạch, tuyệt đối không lưu mật khẩu. Sử dụng hậu tố `admin+cet1024w` để ép RouterOS xuất dữ liệu dạng dumb terminal (không mã màu ANSI, không ngắt trang, chiều rộng 1024 ký tự để giữ nguyên vẹn cấu trúc JSON).
+- **`inventory.ini` & `group_vars/routeros.yml`:** Khai báo thiết bị sạch, tuyệt đối không lưu mật khẩu. Sử dụng hậu tố `admin+cet1024w` để ép RouterOS xuất dữ liệu dạng dumb terminal (không mã màu ANSI, không ngắt trang, chiều rộng 1024 ký tự để giữ nguyên vẹn cấu trúc JSON). Danh sách `lab_tested_routeros_versions` chỉ chứa các phiên bản đã kiểm thử; hiện tại là `7.16.1`.
 - **`filter_plugins/lab_metrics.py`:** Bộ xử lý số liệu đo lường. Xử lý chính xác các đơn vị nano/micro/mili-giây, không làm tròn gượng ép `<1ms` về số 0, phát hiện xung đột mạng trước khi nạp.
 - **`roles/router_config/`:** Kiểm tra đối chiếu trước khi thực thi. Nếu cấu hình đã tồn tại chính xác, tác vụ sẽ tự bỏ qua, đảm bảo kết quả **`changed=0`** ở các lần chạy sau.
 
