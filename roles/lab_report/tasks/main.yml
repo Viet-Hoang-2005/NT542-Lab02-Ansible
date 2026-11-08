@@ -1,25 +1,39 @@
 ---
+# 1. Khởi tạo danh sách rỗng chứa kết quả đo của tất cả các router
 - name: Initialize the measurement list
   ansible.builtin.set_fact:
     lab_results: []
+
+# 2. Lặp qua từng router trong nhóm routeros để nạp kết quả đo từ file JSON
 - name: Load each router result if it exists
   ansible.builtin.include_tasks: load_result.yml
   loop: "{{ groups['routeros'] }}"
   loop_control:
     loop_var: lab_router
+
+# 3. Sử dụng Jinja2 template để render file báo cáo Markdown trực quan (report.md)
 - name: Write the Markdown report
   ansible.builtin.template:
     src: report.md.j2
     dest: "{{ lab_artifact_dir }}/report.md"
     mode: '0600'
+
+# 4. Sử dụng Jinja2 template để render bảng dữ liệu tóm tắt dạng CSV (summary.csv)
 - name: Write the CSV summary
   ansible.builtin.template:
     src: summary.csv.j2
     dest: "{{ lab_artifact_dir }}/summary.csv"
     mode: '0600'
+
+# 5. Hiển thị đường dẫn lưu trữ file báo cáo trên màn hình console
 - name: Display the report location
   ansible.builtin.debug:
     msg: "Results: {{ lab_artifact_dir }}/report.md"
+
+# 6. Kiểm tra xác nhận chất lượng toàn diện:
+# - Router phải phản hồi (router_reachable = true)
+# - Đọc lệnh raw CLI và export thành công
+# - Cả 2 phép đo Ping (quản trị và loopback) đều phải nhận đủ 5/5 gói tin (0% packet loss)
 - name: Require complete collection and successful ping checks
   ansible.builtin.assert:
     that:

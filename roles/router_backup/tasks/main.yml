@@ -1,19 +1,26 @@
 ---
+# 1. Bỏ qua bước sao lưu nếu trước đó bất kỳ router nào bị lỗi preflight
 - name: Skip full-run backups if either preflight failed
   ansible.builtin.meta: end_play
   when:
     - lab_allow_partial | default(false) | bool
     - (groups['routeros'] | map('extract', hostvars, 'lab_preflight_ok') | select('equalto', true) | list | length) != (groups['routeros'] | length)
+
+# 2. Xác thực tên giai đoạn sao lưu hợp lệ
 - name: Validate the backup phase
   ansible.builtin.assert:
     that:
       - backup_phase is match('^[A-Za-z0-9_-]+$')
+
+# 3. Chạy lệnh /export trên RouterOS để lấy toàn bộ cấu hình dạng kịch bản văn bản
 - name: Export RouterOS configuration without sensitive values
   community.routeros.command:
     commands: [/export]
   register: lab_export
   changed_when: false
   no_log: true
+
+# 4. Lưu nội dung xuất được vào file <hostname>-<backup_phase>.rsc trên máy Ubuntu (host)
 - name: Save the router export
   ansible.builtin.copy:
     content: "{{ lab_export.stdout[0] }}\n"

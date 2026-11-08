@@ -1,7 +1,8 @@
 ---
+# Kiểm tra tổng số router có lab_preflight_ok=true phải bằng chính xác tổng số host trong nhóm routeros
 - name: Stop a standalone preflight if any router is not ready
   ansible.builtin.assert:
     that:
       - (groups['routeros'] | map('extract', hostvars, 'lab_preflight_ok') | select('equalto', true) | list | length) == (groups['routeros'] | length)
     fail_msg: At least one router failed preflight. Review the router-specific errors above.
-  when: not (lab_allow_partial | default(false) | bool)
+  when: not (lab_allow_partial | default(false) | bool) # Chỉ thực thi khi không bật chế độ chạy mềm (partial mode)

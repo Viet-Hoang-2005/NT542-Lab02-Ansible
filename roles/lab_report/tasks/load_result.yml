@@ -1,13 +1,19 @@
 ---
+# 1. Kiểm tra xem file <router>-metrics.json có tồn tại trong thư mục artifacts hay không
 - name: Check whether the router result was saved
   ansible.builtin.stat:
     path: "{{ lab_artifact_dir }}/{{ lab_router }}-metrics.json"
   register: lab_result_file
+
+# 2. Đọc nội dung file JSON đo lường (mã hóa base64 qua slurp)
 - name: Read the router result
   ansible.builtin.slurp:
     src: "{{ lab_artifact_dir }}/{{ lab_router }}-metrics.json"
   register: lab_result_data
   when: lab_result_file.stat.exists
+
+# 3. Giải mã và nạp từ điển số liệu vào danh sách lab_results chung
+# Nếu không tìm thấy file, tạo một bản ghi đánh dấu router không phản hồi (fallback)
 - name: Add the router result to the report
   ansible.builtin.set_fact:
     lab_results: >-

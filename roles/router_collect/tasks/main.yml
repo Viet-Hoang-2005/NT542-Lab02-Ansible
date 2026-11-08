@@ -1,4 +1,5 @@
 ---
+# 1. Đo Ping từ host tới địa chỉ IP quản trị ether1 của Router
 - name: Ping the management address from the control node
   ansible.builtin.command:
     argv: [ping, -n, -c, "{{ lab_ping_count | string }}", -W, '2', "{{ ansible_host }}"]
@@ -8,6 +9,9 @@
   register: lab_management_ping
   failed_when: false
   changed_when: false
+
+# 2. Thu thập Facts phần cứng (CPU, RAM, Uptime, Disk, Interface)
+# Loại trừ routing và config để tăng tốc độ thu thập dữ liệu
 - name: Read hardware and interface facts
   community.routeros.facts:
     gather_subset: [hardware, interfaces, '!routing', '!config']
@@ -15,6 +19,8 @@
   ignore_errors: true
   ignore_unreachable: true
   changed_when: false
+
+# 3. Lấy thông tin cấu hình mạng chi tiết và đo Ping nội bộ giữa hai Loopback
 - name: Read raw router state and ping the peer loopback
   community.routeros.command:
     commands:
@@ -28,6 +34,8 @@
   ignore_errors: true
   ignore_unreachable: true
   changed_when: false
+
+# 4. Trích xuất bản cấu hình văn bản đang chạy (/export)
 - name: Export the current router configuration
   community.routeros.command:
     commands: [/export]
@@ -37,6 +45,8 @@
   ignore_unreachable: true
   changed_when: false
   no_log: true
+
+# 5. Lưu file cấu hình thu thập được vào <hostname>-collected.rsc trên máy host
 - name: Save the collected configuration
   ansible.builtin.copy:
     content: "{{ lab_collect_export.stdout[0] }}\n"
@@ -47,6 +57,8 @@
     - lab_collect_export.stdout is defined
     - lab_collect_export.stdout | length > 0
   no_log: true
+
+# 6. Đóng gói toàn bộ số liệu đo lường thành từ điển cấu trúc lab_measurement
 - name: Prepare the measurements
   ansible.builtin.set_fact:
     lab_measurement:
@@ -63,12 +75,16 @@
       memory_used_percent: "{{ lab_facts_result.ansible_facts | default({}) | lab_memory_used_percent }}"
       management_ping: "{{ lab_management_ping.stdout | default('') | lab_parse_ping('linux') }}"
       peer_ping: "{{ ((lab_raw_result.stdout | default([])) | last | default('')) | lab_parse_ping('routeros') }}"
+
+# 7. Lưu cấu trúc số liệu đo đạc có cấu trúc vào file <hostname>-metrics.json
 - name: Save the machine-readable measurements
   ansible.builtin.copy:
     content: "{{ lab_measurement | to_nice_json }}\n"
     dest: "{{ hostvars['localhost'].lab_project_dir }}/artifacts/{{ hostvars['localhost'].lab_run_id }}/{{ inventory_hostname }}-metrics.json"
     mode: '0600'
   delegate_to: localhost
+
+# 8. Lưu kết quả thô của CLI và lệnh ping vào file <hostname>-raw.json phục vụ đối chiếu
 - name: Save the raw CLI and ping output
   ansible.builtin.copy:
     content: "{{ {'management_ping': lab_management_ping.stdout | default(''), 'router_commands': lab_raw_result.stdout | default([])} | to_nice_json }}\n"

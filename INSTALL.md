@@ -1,6 +1,6 @@
 # Hướng dẫn Cài đặt EVE-NG Community & Thiết lập Lab Tự Động Hóa Mạng với Ansible
 
-Tài liệu này hướng dẫn toàn bộ quy trình từ cài đặt nền tảng [EVE-NG Community 6.2.0-4](https://www.eve-ng.net/index.php/download) trên [VMware Workstation Pro](https://www.vmware.com/products/desktop-hypervisor/workstation-and-fusion), nạp image Router, thiết lập sơ đồ mạng (Topology) đến chuẩn bị máy chủ điều khiển (Ansible Control Node) sẵn sàng cho việc viết và chạy các Playbook cấu hình & thu thập cấu hình mạng.
+Tài liệu này hướng dẫn chi tiết toàn bộ quy trình từ cài đặt nền tảng [EVE-NG Community 6.2.0-4](https://www.eve-ng.net/index.php/download) trên [VMware Workstation Pro](https://www.vmware.com/products/desktop-hypervisor/workstation-and-fusion), nạp image Router MikroTik, thiết lập sơ đồ mạng (Topology), chuẩn bị máy chủ điều khiển (Ansible Control Node) cho đến các bước thực thi Playbook tự động hóa cấu hình và thu thập dữ liệu mạng.
 
 ---
 
@@ -66,7 +66,8 @@ Module 'ULM' power on failed.
 ```
 Đây là hạn chế được Broadcom ghi nhận khi dùng ảo hóa lồng nhau cùng Hyper-V/VBS trên máy thật ([Tài liệu Broadcom KB 313547](https://knowledge.broadcom.com/external/article/313547)).
 
-> ⚠️ **Lưu ý:** Việc tắt VBS làm giảm các lớp bảo vệ dựa trên ảo hóa của Windows. Tắt Virtual Machine Platform cũng khiến WSL2 và Docker Desktop tạm thời không hoạt động trong suốt thời gian làm lab.
+> [!CAUTION]
+> Việc tắt VBS làm giảm các lớp bảo vệ dựa trên ảo hóa của Windows. Tắt Virtual Machine Platform cũng khiến WSL2 và Docker Desktop tạm thời không hoạt động trong suốt thời gian làm lab.
 
 ### 2. Các bước cấu hình chi tiết (Chạy bằng PowerShell với quyền Administrator)
 
@@ -289,11 +290,12 @@ Sử dụng máy ảo độc lập **Ubuntu 20.04** trên VMware Workstation (c�
    sudo apt install -y build-essential git curl ca-certificates libssl-dev zlib1g-dev \
      libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev \
      libffi-dev liblzma-dev
-   # Chỉ clone nếu ~/.pyenv chưa tồn tại.
-   git clone https://github.com/pyenv/pyenv.git "$HOME/.pyenv"
    ```
-   Thêm một lần vào `~/.bashrc` và `~/.profile`, sau đó chạy `source ~/.bashrc`:
+
    ```bash
+   # Chỉ clone nếu ~/.pyenv chưa tồn tại
+   git clone https://github.com/pyenv/pyenv.git "$HOME/.pyenv"
+
    export PYENV_ROOT="$HOME/.pyenv"
    export PATH="$PYENV_ROOT/bin:$PATH"
    eval "$(pyenv init - bash)"
@@ -309,13 +311,103 @@ Sử dụng máy ảo độc lập **Ubuntu 20.04** trên VMware Workstation (c�
    ansible-galaxy collection install -r requirements.yml
    ansible --version
    ```
-   Python hệ thống vẫn giữ nguyên. Ansible Core 2.20.11 chạy trên Python 3.12; dùng `deactivate` để thoát venv. Hướng dẫn chạy playbook nằm trong [README.md](README.md).
+   *(Python hệ thống vẫn giữ nguyên. Ansible Core 2.20.11 chạy trong venv Python 3.12; dùng `deactivate` khi muốn thoát venv)*.
 
 ---
 
-## Phần 8: Khôi phục Windows sau khi hoàn thành lab
+## Phần 8: Hướng dẫn Thực thi Playbook Ansible
 
-> ⚠️ **LƯU Ý:** Chỉ thực hiện phần này khi bạn đã hoàn thành và nộp xong toàn bộ bài lab NT542, muốn khôi phục lại các tính năng bảo mật Windows (VBS, Memory Integrity) cũng như sử dụng lại **WSL2** và **Docker Desktop**. 
+Toàn bộ thao tác thực thi dưới đây được thực hiện trong Terminal của máy **Ubuntu Control Node**
+
+### Bước 1: Kích hoạt môi trường ảo & Chấp nhận SSH Host Key
+```bash
+# 1. Di chuyển vào thư mục dự án và kích hoạt venv
+cd ~/Downloads/NT542-Lab02-Ansible
+source .venv-ansible/bin/activate
+
+# 2. Cập nhật mã nguồn mới nhất từ Git
+git pull --ff-only
+
+# 3. Chấp nhận fingerprint SSH của 2 router vào known_hosts (chỉ cần làm 1 lần đầu)
+ssh -o StrictHostKeyChecking=accept-new admin@192.168.126.11 "exit"
+ssh -o StrictHostKeyChecking=accept-new admin@192.168.126.12 "exit"
+```
+
+### Bước 2: Kiểm tra cú pháp và Unit Tests
+Trước khi chạy lên thiết bị thật, luôn kiểm tra cú pháp và logic bộ lọc:
+```bash
+# 1. Hiển thị cấu trúc cây Inventory
+ansible-inventory --graph
+
+# 2. Kiểm tra cú pháp playbook
+ansible-playbook --syntax-check site.yml
+
+# 3. Chạy kiểm thử tự động cho bộ lọc số liệu và phát hiện xung đột
+python -m unittest discover -s tests -v
+```
+
+### Bước 3: Chạy Toàn bộ Kịch bản
+Lệnh All-in-One chạy toàn bộ chuỗi tác vụ theo thứ tự chuẩn:
+```bash
+ansible-playbook site.yml -k
+```
+- Khi terminal hiển thị `SSH password: `, nhập mật khẩu của tài khoản `admin` Router (ví dụ: `admin123`).
+- **Chuỗi tiến trình tự động diễn ra:**
+  1. **Preflight:** Kiểm tra phiên bản Ansible, collection, trạng thái kết nối và phát hiện xung đột IP/Route.
+  2. **Backup Before:** Xuất bản cấu hình gốc trước khi thay đổi (`<router>-before.rsc`).
+  3. **Configure:** Tự động nạp IP `ether2`, IP Loopback `lo`, Static Route và đổi Hostname `R1`, `R2`.
+  4. **Backup After:** Xuất bản cấu hình sau khi đã áp dụng thay đổi (`<router>-after.rsc`).
+  5. **Collect:** Thu thập số liệu phần cứng, tài nguyên và thực hiện đo lường ping 2 chiều.
+  6. **Report:** Tự động tổng hợp và sinh ra báo cáo `report.md` cùng `summary.csv`.
+
+### Bước 4: Chạy Từng bước Độc lập
+Nếu muốn chạy từng playbook riêng biệt nhưng vẫn lưu chung vào một thư mục kết quả:
+```bash
+# Tạo Run ID theo chuẩn UTC
+LAB_RUN_ID="$(date -u +%Y%m%dT%H%M%S.%NZ)"
+
+# 1. Chạy Preflight kiểm tra điều kiện
+ansible-playbook playbooks/preflight.yml -k -e "lab_run_id=$LAB_RUN_ID"
+
+# 2. Sao lưu cấu hình trước thay đổi
+ansible-playbook playbooks/backup.yml -k -e "lab_run_id=$LAB_RUN_ID" -e backup_phase=before
+
+# 3. Thực thi cấu hình mạng
+ansible-playbook playbooks/configure.yml -k -e "lab_run_id=$LAB_RUN_ID"
+
+# 4. Sao lưu cấu hình sau thay đổi
+ansible-playbook playbooks/backup.yml -k -e "lab_run_id=$LAB_RUN_ID" -e backup_phase=after
+
+# 5. Thu thập thông số đo lường
+ansible-playbook playbooks/collect.yml -k -e "lab_run_id=$LAB_RUN_ID"
+
+# 6. Tạo báo cáo tổng hợp
+ansible-playbook playbooks/report.yml -e "lab_run_id=$LAB_RUN_ID"
+```
+
+### Bước 5: Kiểm tra tính Bất biến (Idempotency)
+Để chứng minh với giảng viên rằng Ansible không ghi đè cấu hình trùng lặp:
+```bash
+# Chạy lại playbook cấu hình lần thứ 2
+ansible-playbook playbooks/configure.yml -k
+```
+**Kết quả quan sát:** Toàn bộ tác vụ đều báo trạng thái `ok` (màu xanh lá), tóm tắt kết thúc báo **`changed=0`**.
+
+### Bước 6: Đọc Kết quả trong Thư mục `artifacts/<run_id>/`
+Sau khi chạy xong, toàn bộ minh chứng nằm tại thư mục `artifacts/<run_id>/`:
+- `<router>-before.rsc` & `<router>-after.rsc`: Dùng lệnh `diff` để so sánh trực quan cấu hình thay đổi:
+  ```bash
+  diff -u artifacts/<run_id>/R1-before.rsc artifacts/<run_id>/R1-after.rsc
+  ```
+- `report.md`: Báo cáo chi tiết định dạng Markdown chứa bảng biểu mô hình, phần cứng và độ trễ ping.
+- `summary.csv`: Tệp dữ liệu số liệu phục vụ vẽ biểu đồ hoặc phân tích bảng tính.
+
+---
+
+## Phần 9: Khôi phục Windows sau khi hoàn thành lab
+
+> [!WARNING]
+> Chỉ thực hiện phần này khi bạn đã hoàn thành và nộp xong toàn bộ bài lab NT542, muốn khôi phục lại các tính năng bảo mật Windows (VBS, Memory Integrity) cũng như sử dụng lại **WSL2** và **Docker Desktop**. 
 
 Mở **PowerShell (Run as Administrator)** và thực hiện:
 

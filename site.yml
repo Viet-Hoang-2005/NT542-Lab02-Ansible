@@ -1,23 +1,40 @@
 ---
+# Giai đoạn 1:
+# Xác minh phiên bản Ansible, collection trên Ubuntu và trạng thái SSH, cổng mạng trên Router
 - name: Check prerequisites
   import_playbook: playbooks/preflight.yml
   vars:
-    lab_allow_partial: true
+    lab_allow_partial: true # Cho phép ghi nhận lỗi mềm mà không dừng toàn bộ chuỗi
+
+# Giai đoạn 2:
+# Lưu lại toàn bộ running-config nguyên bản của R1, R2 trước khi có bất kỳ thay đổi nào
 - name: Back up the initial configuration
   import_playbook: playbooks/backup.yml
   vars:
     backup_phase: before
     lab_allow_partial: true
+
+# Giai đoạn 3:
+# Tự động nạp IP ether2, IP Loopback lo, Static Route và đổi tên Hostname (đảm bảo Idempotent)
 - name: Configure routers
   import_playbook: playbooks/configure.yml
   vars:
     lab_allow_partial: true
+
+# Giai đoạn 4:
+# Lưu lại running-config mới nhất để đối chiếu sự khác biệt (diff) với bản ban đầu
 - name: Back up the resulting configuration
   import_playbook: playbooks/backup.yml
   vars:
     backup_phase: after
     lab_allow_partial: true
+
+# Giai đoạn 5:
+# Thu thập thông tin phần cứng (CPU, RAM, Uptime) và thực hiện đo ping 2 chiều (Out-of-band & In-band)
 - name: Collect router measurements
   import_playbook: playbooks/collect.yml
+
+# Giai đoạn 6:
+# Xuất dữ liệu đo được thành báo cáo Markdown (report.md) và bảng CSV (summary.csv)
 - name: Generate the report
   import_playbook: playbooks/report.yml

@@ -1,19 +1,28 @@
 ---
+# 1. Kiểm tra phiên bản Ansible Core (yêu cầu trong khoảng 2.20.x)
 - name: Require a compatible Ansible Core
   ansible.builtin.assert:
     that:
       - ansible_version.full is version('2.20', '>=')
       - ansible_version.full is version('2.21', '<')
     fail_msg: Activate the lab venv with Ansible Core 2.20.x before proceeding.
+
+# 2. Kiểm tra phần mở rộng C (C-extension) của thư viện SSH: pylibsshext
+# Thư viện này hỗ trợ kết nối SSH mạng tốc độ cao và ổn định hơn so với pure-python paramiko
 - name: Check the SSH dependency
   ansible.builtin.command:
     argv: ["{{ ansible_playbook_python }}", -c, 'import pylibsshext']
-  changed_when: false
+  changed_when: false # Lệnh kiểm tra chỉ đọc, không làm thay đổi trạng thái hệ thống
+
+# 3. Lấy danh sách các Collection hiện có trên máy điều khiển
 - name: Check the installed collections
   ansible.builtin.command:
     argv: [ansible-galaxy, collection, list]
   register: lab_collections
   changed_when: false
+
+# 4. Xác thực chính xác các phiên bản Collection đã ghim trong requirements.yml
+# Tránh xung đột hoặc thay đổi hành vi API giữa các bản phát hành khác nhau
 - name: Require the planned collection versions
   ansible.builtin.assert:
     that:

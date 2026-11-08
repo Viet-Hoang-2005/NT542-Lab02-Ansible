@@ -1,41 +1,58 @@
 ---
+# 1. Bỏ qua cấu hình nếu bất kỳ router nào bị lỗi ở bước tiền điều kiện preflight
 - name: Skip configuration if either preflight failed
   ansible.builtin.meta: end_play
   when:
     - lab_allow_partial | default(false) | bool
     - (groups['routeros'] | map('extract', hostvars, 'lab_preflight_ok') | select('equalto', true) | list | length) != (groups['routeros'] | length)
+
+# 2. Gán địa chỉ IP liên kết trên cổng ether2
 - name: Add the inter-router address
   community.routeros.command:
     commands:
       - "/ip address add address={{ lab_link_address }} interface={{ lab_link_interface }} comment={{ lab_comment }}"
   when: lab_plan.actions.link_address
   changed_when: true
+
+# 3. Gán địa chỉ IP Loopback trên cổng lo
 - name: Add the loopback address
   community.routeros.command:
     commands:
       - "/ip address add address={{ lab_loopback_address }} interface={{ lab_loopback_interface }} comment={{ lab_comment }}"
   when: lab_plan.actions.loopback_address
   changed_when: true
+
+# 4. Tạo tuyến định tuyến tĩnh (Static Route) tới IP Loopback của router đối diện qua IP Gateway ether2
+# Chỉ thực thi khi Route này chưa tồn tại trong bảng định tuyến
 - name: Add the route to the peer loopback
   community.routeros.command:
     commands:
       - "/ip route add dst-address={{ lab_peer_loopback }}/32 gateway={{ lab_peer_gateway }} comment={{ lab_comment }}"
   when: lab_plan.actions.route
   changed_when: true
+
+# 5. Đọc định danh tên (Hostname/Identity) hiện tại của Router
 - name: Read the current router identity
   community.routeros.command:
     commands:
       - ':put [/system identity get name]'
   register: lab_current_identity
   changed_when: false
+
+# 6. Đổi Hostname của Router sang tên chuẩn (R1 hoặc R2) nếu tên hiện tại chưa đúng
 - name: Set the router identity
   community.routeros.command:
     commands:
       - "/system identity set name={{ lab_identity }}"
   when: lab_current_identity.stdout[0] | trim != lab_identity
   changed_when: true
+
+# 7. Khởi tạo lại phiên kết nối SSH (reset_connection)
+# Khi RouterOS đổi Hostname, dấu nhắc (prompt) CLI thay đổi; cần kết nối lại để tránh timeout
 - name: Reset the connection after the identity check
   ansible.builtin.meta: reset_connection
+
+# 8. Xác nhận Hostname mới đã có hiệu lực trên Router
 - name: Verify the resulting identity
   community.routeros.command:
     commands:
@@ -43,6 +60,8 @@
   register: lab_new_identity
   changed_when: false
   failed_when: lab_new_identity.stdout[0] | trim != lab_identity
+
+# 9. Đọc lại toàn bộ bảng IP, Route và Interface sau khi áp dụng cấu hình
 - name: Read the resulting addresses and routes
   community.routeros.command:
     commands:
@@ -51,6 +70,8 @@
       - ':put [:serialize to=json [/interface print as-value]]'
   register: lab_applied_state
   changed_when: false
+
+# 10. Chạy lại bộ lọc lab_plan_router_state trên trạng thái mới
 - name: Validate the resulting configuration
   ansible.builtin.set_fact:
     lab_verified_plan: >-
@@ -63,6 +84,8 @@
                                   'loopback_address': lab_loopback_address,
                                   'peer_loopback': lab_peer_loopback,
                                   'peer_gateway': lab_peer_gateway}) }}
+
+# 11. Xác nhận hội tụ thành công
 - name: Require all requested addresses and routes
   ansible.builtin.assert:
     that:
