@@ -23,7 +23,7 @@
     - name: Extract the RouterOS version
       ansible.builtin.set_fact:
         lab_routeros_version: >-
-          {{ lab_state.stdout[0] | regex_findall('(?m)^\\s*version:\\s*([^\\s]+)') | first | default('') }}
+          {{ lab_state.stdout[0] | regex_findall('version: *([0-9][0-9A-Za-z._-]*)') | first | default('') }}
 
     - name: Require a tested RouterOS version
       ansible.builtin.assert:
