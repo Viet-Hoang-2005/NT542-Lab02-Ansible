@@ -1,6 +1,6 @@
 # Router lab report
 
-Run ID: `{{ lab_run_id }}` (UTC). Results are point-in-time observations.
+Run ID: `{{ lab_run_id }}` (Giờ Việt Nam / ICT). Results are point-in-time observations.
 
 ## Topology
 
@@ -45,7 +45,3 @@ Each ping sends five packets by default. RTT values are milliseconds; `N/A` mean
   - {{ warning }}
 {% endfor %}
 {% endfor %}
-
-Exports and raw CLI results are saved beside this report. The `before` and `after` exports document the configuration change in a full run. RouterOS exports omit sensitive values unless explicitly requested, so they are not complete password backups.
-
-Ansible applies and collects configuration consistently across both devices. CPU, memory and ping describe the virtual lab at this instant; they do not establish that Ansible improves router performance or network throughput.

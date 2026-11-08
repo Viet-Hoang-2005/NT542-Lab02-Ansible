@@ -79,7 +79,7 @@ NT542-Lab02-Ansible/
 │   └── R2.yml                    # Thông số mạng mong muốn cho Router R2 (IP, Loopback, Route)
 │
 ├── playbooks/
-│   ├── init.yml                  # Khởi tạo định danh lượt chạy duy nhất (UTC lab_run_id)
+│   ├── init.yml                  # Khởi tạo định danh lượt chạy theo giờ VN (lab_run_id)
 │   ├── preflight.yml             # Kiểm tra điều kiện môi trường & phát hiện xung đột cấu hình
 │   ├── backup.yml                # Xuất cấu hình văn bản (/export) trước và sau thay đổi
 │   ├── configure.yml             # Nạp IP, Loopback, Route, Hostname (đảm bảo Idempotent)

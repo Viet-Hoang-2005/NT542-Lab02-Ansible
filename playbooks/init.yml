@@ -4,9 +4,10 @@
   connection: local
   gather_facts: false
   tasks:
-    - name: Initialize the UTC run ID
+    # 1. Sinh mã định danh lượt chạy (Run ID) theo giờ Việt Nam (UTC+7) định dạng: YYYY-MM-DD_HH-mm-ss
+    - name: Initialize the Vietnam time run ID
       ansible.builtin.set_fact:
-        lab_run_id: "{{ lab_run_id | default(lookup('pipe', 'date -u +%Y%m%dT%H%M%S.%NZ')) }}"
+        lab_run_id: "{{ lab_run_id | default(lookup('pipe', \"TZ='Asia/Ho_Chi_Minh' date +%Y-%m-%d_%H-%M-%S\")) }}"
         lab_project_dir: "{{ hostvars[groups['routeros'][0]].inventory_dir }}"
     - name: Validate the run ID
       ansible.builtin.assert:

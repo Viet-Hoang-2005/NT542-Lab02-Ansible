@@ -363,8 +363,8 @@ ansible-playbook site.yml -k
 ### Bước 4: Chạy Từng bước Độc lập
 Nếu muốn chạy từng playbook riêng biệt nhưng vẫn lưu chung vào một thư mục kết quả:
 ```bash
-# Tạo Run ID theo chuẩn UTC
-LAB_RUN_ID="$(date -u +%Y%m%dT%H%M%S.%NZ)"
+# Tạo Run ID theo giờ Việt Nam (ví dụ: 2026-11-08_10-45-00)
+LAB_RUN_ID="$(TZ='Asia/Ho_Chi_Minh' date +%Y-%m-%d_%H-%M-%S)"
 
 # 1. Chạy Preflight kiểm tra điều kiện
 ansible-playbook playbooks/preflight.yml -k -e "lab_run_id=$LAB_RUN_ID"
